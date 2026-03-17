@@ -5,6 +5,8 @@ import Book from "../../models/Book.model";
 import Ticket from "../../models/Ticket.model";
 import { AuthRequest } from "../../middleware/auth.middleware";
 import { saveAttachments } from "../../utils/saveAttachment";
+import { uploadAttachmentsToCloudinary } from "../../utils/uploadToCloudinary";
+
 
 import {
     classifyTicketAI,
@@ -102,7 +104,10 @@ export async function createSupportTicket(req: AuthRequest, res: Response) {
         });
 
         const files = (req.files as Express.Multer.File[]) || [];
-        const attachments = files.length ? await saveAttachments(files) : [];
+        const attachments = files.length
+            ? await uploadAttachmentsToCloudinary(files)
+            : [];
+
 
 
         const ticket = await Ticket.create({
@@ -125,19 +130,19 @@ export async function createSupportTicket(req: AuthRequest, res: Response) {
             attachments,
 
 
-    });
+        });
 
-    return res.status(201).json({
-        success: true,
-        message: "Support ticket created successfully",
-        data: ticket,
-    });
-} catch (error: any) {
-    return res.status(500).json({
-        success: false,
-        message: error.message || "Failed to create ticket",
-    });
-}
+        return res.status(201).json({
+            success: true,
+            message: "Support ticket created successfully",
+            data: ticket,
+        });
+    } catch (error: any) {
+        return res.status(500).json({
+            success: false,
+            message: error.message || "Failed to create ticket",
+        });
+    }
 }
 
 export async function getMyTickets(req: AuthRequest, res: Response) {

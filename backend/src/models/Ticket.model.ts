@@ -24,11 +24,14 @@ export interface ITicketInternalNote {
 }
 
 export interface ITicketAttachment {
-    fileName: string;
-    fileUrl: string;
-    mimeType?: string;
-    fileSize?: number;
+  fileName: string;
+  fileUrl: string;
+  mimeType?: string;
+  fileSize?: number;
+  publicId?: string;
+  resourceType?: string;
 }
+
 
 export interface ITicket extends Document {
     ticketNumber: string;
@@ -94,28 +97,37 @@ const ticketInternalNoteSchema = new Schema<ITicketInternalNote>(
 );
 
 const ticketAttachmentSchema = new Schema<ITicketAttachment>(
-    {
-        fileName: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-        fileUrl: {
-            type: String,
-            required: true,
-            trim: true,
-        },
-        mimeType: {
-            type: String,
-            default: "",
-        },
-        fileSize: {
-            type: Number,
-            default: 0,
-        },
+  {
+    fileName: {
+      type: String,
+      required: true,
+      trim: true,
     },
-    { _id: false }
+    fileUrl: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    mimeType: {
+      type: String,
+      default: "",
+    },
+    fileSize: {
+      type: Number,
+      default: 0,
+    },
+    publicId: {
+      type: String,
+      default: "",
+    },
+    resourceType: {
+      type: String,
+      default: "",
+    },
+  },
+  { _id: false }
 );
+
 
 const ticketSchema = new Schema<ITicket>(
     {
