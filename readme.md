@@ -42,7 +42,7 @@ A full-stack support ticket platform for BookLeaf Publishing where authors can r
 
 Swagger is available for interactive API documentation and testing.
 
-- **Docs URL:** `https://bookleaf-support-portal-r4pt.onrender.com/api-docs/`
+- **Docs URL:** `http://localhost:5000/api-docs/`
 
 Use it to:
 - view all backend endpoints
