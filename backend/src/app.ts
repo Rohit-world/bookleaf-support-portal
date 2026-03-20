@@ -4,6 +4,9 @@ import helmet from "helmet";
 import morgan from "morgan";
 import routes from "./routes";
 import path from "path";
+import swaggerUi from "swagger-ui-express";
+import swaggerDocument from "./config/swagger";
+
 
 
 const app = express();
@@ -23,13 +26,14 @@ app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 
 app.use("/api", routes);
-
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 app.use((req, res) => {
   res.status(404).json({
     success: false,
     message: `Route not found: ${req.method} ${req.originalUrl}`,
   });
 });
+
 
 app.use(
   (
