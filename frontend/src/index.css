@@ -1,0 +1,31 @@
+@import "tailwindcss";
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  font-family: Inter, system-ui, sans-serif;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.Toastify__toast-container--top-center {
+  width: auto;
+}
+
+.Toastify__toast {
+  min-height: auto;
+}
+
+.Toastify__toast-icon {
+  margin-inline-end: 10px;
+}
+
+.Toastify__toast {
+  display: flex;
+  align-items: center;
+}
