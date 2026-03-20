@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import api from "../../api/axios";
 import type { Ticket, TicketDetailResponse } from "../../types/ticket";
+import { createSseConnection } from "../../utils/sse";
 
 const formatDate = (value?: string) => {
   if (!value) return "—";
@@ -21,6 +22,15 @@ export default function TicketDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchTicket = useCallback(async (ticketId: string, signal?: AbortSignal) => {
+    const { data } = await api.get<TicketDetailResponse>(
+      `/author/tickets/${ticketId}`,
+      { signal }
+    );
+
+    setTicket(data.data || null);
+  }, []);
+
   useEffect(() => {
     if (!id) {
       setError("Ticket id is missing");
@@ -30,17 +40,12 @@ export default function TicketDetailsPage() {
 
     const controller = new AbortController();
 
-    const fetchTicket = async () => {
+    const loadData = async () => {
       try {
         setLoading(true);
         setError("");
 
-        const { data } = await api.get<TicketDetailResponse>(
-          `/author/tickets/${id}`,
-          { signal: controller.signal }
-        );
-
-        setTicket(data.data || null);
+        await fetchTicket(id, controller.signal);
       } catch (err: any) {
         if (err?.name === "CanceledError") return;
 
@@ -50,12 +55,42 @@ export default function TicketDetailsPage() {
       }
     };
 
-    fetchTicket();
+    loadData();
 
     return () => {
       controller.abort();
     };
-  }, [id]);
+  }, [id, fetchTicket]);
+
+  useEffect(() => {
+    if (!id) return;
+
+    const sse = createSseConnection();
+    if (!sse) return;
+
+    const handleTicketUpdated = (event: MessageEvent) => {
+      try {
+        const payload = JSON.parse(event.data);
+
+        if (payload.ticketId === id) {
+          fetchTicket(id).catch(() => {});
+        }
+      } catch {
+        //
+      }
+    };
+
+    sse.addEventListener("ticket_updated", handleTicketUpdated);
+
+    sse.onerror = () => {
+      console.error("SSE connection error");
+    };
+
+    return () => {
+      sse.removeEventListener("ticket_updated", handleTicketUpdated);
+      sse.close();
+    };
+  }, [id, fetchTicket]);
 
   if (loading) {
     return (
@@ -95,7 +130,9 @@ export default function TicketDetailsPage() {
       <div className="rounded-2xl bg-white p-6 shadow-sm">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-sm text-slate-500">Ticket No: {ticket.ticketNumber}</p>
+            <p className="text-sm text-slate-500">
+              Ticket No: {ticket.ticketNumber}
+            </p>
             <h2 className="mt-1 text-2xl font-semibold text-slate-900">
               {ticket.subject}
             </h2>
@@ -160,14 +197,15 @@ export default function TicketDetailsPage() {
             <div className="mt-4 space-y-4">
               {ticket.responses.map((item, index) => (
                 <div
-                  key={`${item.createdAt}-${index}`}
+                  key={`${item.createdAt || item.sentAt || index}-${index}`}
                   className="rounded-xl border border-slate-200 p-4"
                 >
                   <p className="whitespace-pre-line text-sm text-slate-700">
                     {item.message}
                   </p>
                   <p className="mt-2 text-xs text-slate-500">
-                    By: {item.respondedBy || "Support"} • {formatDate(item.createdAt)}
+                    By: {item.respondedBy || item.sentByAdminId || "Support"} •{" "}
+                    {formatDate(item.createdAt || item.sentAt)}
                   </p>
                 </div>
               ))}
@@ -192,7 +230,8 @@ export default function TicketDetailsPage() {
                   {note.note}
                 </p>
                 <p className="mt-2 text-xs text-slate-500">
-                  By: {note.createdBy || "Admin"} • {formatDate(note.createdAt)}
+                  By: {note.createdBy || note.adminId || "Admin"} •{" "}
+                  {formatDate(note.createdAt)}
                 </p>
               </div>
             ))}

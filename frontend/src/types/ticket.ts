@@ -11,12 +11,15 @@ export interface TicketResponseItem {
   message: string;
   respondedBy?: string;
   createdAt?: string;
+    sentAt?:string,
+    sentByAdminId?:string
 }
 
 export interface TicketNoteItem {
   note: string;
   createdBy?: string;
   createdAt?: string;
+  adminId?:string
 }
 
 export interface Ticket {

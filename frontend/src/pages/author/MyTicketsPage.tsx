@@ -1,41 +1,64 @@
-import { useEffect, useState } from "react";
+
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import type { Ticket, TicketsResponse } from "../../types/ticket";
+import { createSseConnection } from "../../utils/sse";
 
 export default function MyTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const fetchTickets = useCallback(async (signal?: AbortSignal) => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const { data } = await api.get<TicketsResponse>("/author/tickets", {
+        signal,
+      });
+
+      setTickets(data.data || []);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
+
+      setError(err?.response?.data?.message || "Failed to load tickets");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
 
-    const fetchTickets = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const { data } = await api.get<TicketsResponse>("/author/tickets", {
-          signal: controller.signal,
-        });
-
-        setTickets(data.data || []);
-      } catch (err: any) {
-        if (err?.name === "CanceledError") return;
-
-        setError(err?.response?.data?.message || "Failed to load tickets");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTickets();
+    fetchTickets(controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [fetchTickets]);
+
+  useEffect(() => {
+    const sse = createSseConnection();
+
+    if (!sse) return;
+
+    const handleTicketUpdated = () => {
+      fetchTickets();
+    };
+
+    sse.addEventListener("ticket_updated", handleTicketUpdated);
+
+    sse.onerror = () => {
+      console.error("SSE connection error");
+    };
+
+    return () => {
+      sse.removeEventListener("ticket_updated", handleTicketUpdated);
+      sse.close();
+    };
+  }, [fetchTickets]);
 
   if (loading) {
     return (

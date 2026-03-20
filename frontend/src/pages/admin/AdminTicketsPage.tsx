@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../../api/axios";
 import type { Ticket, TicketsResponse } from "../../types/ticket";
+import { createSseConnection } from "../../utils/sse";
 
 const getStatusBadgeClass = (status?: string) => {
   switch (status) {
@@ -42,34 +43,54 @@ export default function AdminTicketsPage() {
   const [priorityFilter, setPriorityFilter] = useState("ALL");
   const [search, setSearch] = useState("");
 
+  const fetchTickets = useCallback(async (signal?: AbortSignal) => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const { data } = await api.get<TicketsResponse>("/admin/tickets", {
+        signal,
+      });
+
+      setTickets(data.data || []);
+    } catch (err: any) {
+      if (err?.name === "CanceledError") return;
+      setError(err?.response?.data?.message || "Failed to load admin tickets");
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const controller = new AbortController();
 
-    const fetchTickets = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        const { data } = await api.get<TicketsResponse>("/admin/tickets", {
-          signal: controller.signal,
-        });
-
-        setTickets(data.data || []);
-      } catch (err: any) {
-        if (err?.name === "CanceledError") return;
-
-        setError(err?.response?.data?.message || "Failed to load admin tickets");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchTickets();
+    fetchTickets(controller.signal);
 
     return () => {
       controller.abort();
     };
-  }, []);
+  }, [fetchTickets]);
+
+  useEffect(() => {
+    const sse = createSseConnection();
+
+    if (!sse) return;
+
+    const handleAdminTicketUpdated = () => {
+      fetchTickets();
+    };
+
+    sse.addEventListener("admin_ticket_updated", handleAdminTicketUpdated);
+
+    sse.onerror = () => {
+      console.error("SSE connection error");
+    };
+
+    return () => {
+      sse.removeEventListener("admin_ticket_updated", handleAdminTicketUpdated);
+      sse.close();
+    };
+  }, [fetchTickets]);
 
   const filteredTickets = useMemo(() => {
     return tickets.filter((ticket) => {
