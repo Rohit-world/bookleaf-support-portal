@@ -104,21 +104,19 @@ npm run dev
 - Backend: `http://localhost:5000`
 - Swagger Docs: `http://localhost:5000/api/docs`
 
-
 ## Credentials
 
-admin@bookleaf.com / Admin@123
-ops@bookleaf.com / Admin@123
+### Admin
+- `admin@bookleaf.com` / `Admin@123`
+- `ops@bookleaf.com` / `Admin@123`
 
+### Author
+- `priya.sharma@email.com` / `Author@123`
+- `rohit.kapoor@email.com` / `Author@123`
+- `ananya.reddy@email.com` / `Author@123`
+- `vikram.joshi@email.com` / `Author@123`
 
-
-priya.sharma@email.com / Author@123
-rohit.kapoor@email.com / Author@123
-ananya.reddy@email.com / Author@123
-vikram.joshi@email.com / Author@123
-
-
-
+## Author
 
 Built by **Rohit Kumar**
-```
+
